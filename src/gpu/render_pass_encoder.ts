@@ -42,6 +42,15 @@ export class FFRenderPassEncoder extends FFObject<GPURenderPassEncoder> {
             return old_setPipeline.call(renderPassEncoder, pipeline);
         };
 
+        const old_setVertexBuffer = renderPassEncoder.setVertexBuffer;
+        renderPassEncoder.setVertexBuffer = (slot: number, buffer: GPUBuffer, offset?: number, size?: number) => {
+            if (rcd.recording) {
+                (buffer as any as FFKey<GPUBuffer>).$ff.markUsed();
+                rcd.addFrameAction(methodCall(this, 'setVertexBuffer', [slot, buffer, offset, size]));
+            }
+            return old_setVertexBuffer.call(renderPassEncoder, slot, buffer, offset, size);
+        };
+
         const old_draw = renderPassEncoder.draw;
         renderPassEncoder.draw = (vertexCount: number, instanceCount: number, firstVertex: number, firstInstance: number) => {
             if (rcd.recording) {

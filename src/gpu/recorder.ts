@@ -12,6 +12,7 @@ export class FFRecorder {
     startRecording() {
         for (let object of this._liveObjects) {
             object.resetUsed();
+            object.cacheCurrentContents();
         }
 
         this._recording = true;
@@ -23,12 +24,12 @@ export class FFRecorder {
         this.save();
     }
 
-    save(): string {
+    async save(): Promise<string> {
         const declVars = [];
         for (let object of this._liveObjects) {
             if (object.used) {
-                object.addInitActions(this);
                 declVars.push(`let ${object.name} = null;`);
+                await object.addInitActions(this);
             }
         }
 
@@ -43,8 +44,18 @@ export class FFRecorder {
             '<script>',
             '(async () => {',
             ...declVars,
+
+            'async function init() {',
             ...this._initActions,
+            '}',
+            'function frame() {',
             ...this._frameActions,
+            'requestAnimationFrame(frame);',
+            '}',
+
+            'await init();',
+            // 'frame();',
+            'requestAnimationFrame(frame);',
             '})();',
             '</script>',
             '</body>',

@@ -1,6 +1,5 @@
 import { methodCall } from "./actions";
 import { FFCanvasContext } from "./canvas_context";
-import { FFDevice } from "./device";
 import { FFObject } from "./object";
 import { FFRecorder } from "./recorder";
 import { FFTextureView } from "./texture_view";

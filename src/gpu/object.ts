@@ -27,6 +27,9 @@ export abstract class FFObject<T> {
     }
 
     abstract get typeName(): string;
+    get actual(): T {
+        return this._actual;
+    }
 
     get name(): string {
         return `${this.typeName}${this._id}`;
@@ -44,7 +47,13 @@ export abstract class FFObject<T> {
         this._used = false;
     }
 
+    cacheCurrentContents() {
+        // Do nothing.
+        // The idea is to save the contents of buffers and textures so that the frame can be
+        // recreated before the recorded frames are played.
+    }
+
     addInitActions(rcd: FFRecorder) {
-        // Do nothing
+        // Do nothing.
     }
 }
