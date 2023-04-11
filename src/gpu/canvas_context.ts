@@ -41,7 +41,8 @@ export class FFCanvasContext extends FFObject<GPUCanvasContext> {
             ctx.getCurrentTexture = () => {
                 const texture = old_getCurrentTexture.call(ctx);
                 if (rcd.recording) {
-                    new FFCurrentTexture(rcd, texture, this);
+                    const ff = new FFCurrentTexture(rcd, texture, this);
+                    rcd.addFrameAction(methodCall(this, 'getCurrentTexture', [], ff));
                 }
                 return texture;
             };

@@ -33,6 +33,9 @@ export class FFRenderPipeline extends FFObject<GPURenderPipeline> {
             if (this._desc.fragment && this._desc.fragment.module) {
                 (this._desc.fragment.module as any).$ff.markUsed();
             }
+            if (this._desc.layout instanceof GPUPipelineLayout) {
+                (this._desc.layout as any).$ff.markUsed();
+            }
         }
     }
 

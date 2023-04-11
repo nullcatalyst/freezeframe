@@ -1,7 +1,7 @@
 import { deepCopy } from "../util/deep_copy";
-import { methodCall } from "./actions";
+import { methodCall, statement } from "./actions";
 import { FFDevice } from "./device";
-import { FFObject } from "./object";
+import { FFKey, FFObject } from "./object";
 import { FFRecorder } from "./recorder";
 
 export class FFBuffer extends FFObject<GPUBuffer> {
@@ -60,33 +60,14 @@ export class FFBuffer extends FFObject<GPUBuffer> {
 
         rcd.addInitAction(methodCall(this._device, 'createBuffer', [{
             size: this._desc.size,
-            usage: this._desc.usage,
-            mappedAtCreation: (this._desc.usage & GPUBufferUsage.MAP_WRITE) !== 0,
-        }]));
+            usage: this._desc.usage | GPUBufferUsage.COPY_DST,
+            mappedAtCreation: this._mappedState === 'mapped',
+        }], this));
 
-        if (this._desc.usage & GPUBufferUsage.COPY_DST) {
-            rcd.addInitAction(`{`);
-            rcd.addInitAction(`const tmpBuffer = ${this._device.name}.createBuffer({"size":${this._desc.size},"usage":GPUBufferUsage.COPY_DST|GPUBufferUsage.MAP_WRITE,"mappedAtCreation":true})`);
-            rcd.addInitAction(`const tmpData = tmpBuffer.getMappedRange()`);
-            rcd.addInitAction(`new Uint8Array(tmpData).set(new Uint8Array([${Array.from(new Uint8Array(data))}]))`);
-            rcd.addInitAction(`tmpBuffer.unmap()`);
-            rcd.addInitAction(`const tmpCmd = ${this._device.name}.createCommandEncoder()`);
-            rcd.addInitAction(`tmpCmd.copyBufferToBuffer(tmpBuffer, 0, ${this.name}, 0, ${this._desc.size})`);
-            rcd.addInitAction(`${this._device.name}.queue.submit([tmpCmd.finish()])`);
-            rcd.addInitAction(`}`);
+        if (this._desc.size % 4 === 0) {
+            rcd.addInitAction(statement(`${(this._device.actual.queue as any as FFKey<GPUQueue>).$ff.name}.writeBuffer(${this.name}, 0, new Uint32Array([${Array.from(new Uint32Array(data))}]))`));
         } else {
-            rcd.addInitAction(`{`);
-            rcd.addInitAction(`const tmpData = tmpBuffer.getMappedRange()`);
-            rcd.addInitAction(`new Uint8Array(tmpData).set(new Uint8Array([${Array.from(new Uint8Array(data))}]))`);
-
-            if (this._mappedState !== 'mapped') {
-                rcd.addInitAction(`tmpBuffer.unmap()`);
-            }
-
-            rcd.addInitAction(`const tmpCmd = ${this._device.name}.createCommandEncoder()`);
-            rcd.addInitAction(`tmpCmd.copyBufferToBuffer(tmpBuffer, 0, ${this.name}, 0, ${this._desc.size})`);
-            rcd.addInitAction(`${this._device.name}.queue.submit([tmpCmd.finish()])`);
-            rcd.addInitAction(`}`);
+            rcd.addInitAction(statement(`${(this._device.actual.queue as any as FFKey<GPUQueue>).$ff.name}.writeBuffer(${this.name}, 0, new Uint8Array([${Array.from(new Uint8Array(data))}]))`));
         }
 
         this._cachedBuffer.unmap();

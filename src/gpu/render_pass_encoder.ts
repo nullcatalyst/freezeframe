@@ -33,6 +33,15 @@ export class FFRenderPassEncoder extends FFObject<GPURenderPassEncoder> {
             return old_setScissorRect.call(renderPassEncoder, x, y, width, height);
         };
 
+        const old_setBindGroup = renderPassEncoder.setBindGroup;
+        renderPassEncoder.setBindGroup = (index: number, bindGroup: GPUBindGroup, dynamicOffsets?: Iterable<number>) => {
+            if (rcd.recording) {
+                (bindGroup as any as FFKey<GPUBindGroup>).$ff.markUsed();
+                rcd.addFrameAction(methodCall(this, 'setBindGroup', [index, bindGroup, dynamicOffsets]));
+            }
+            return old_setBindGroup.call(renderPassEncoder, index, bindGroup, dynamicOffsets);
+        };
+
         const old_setPipeline = renderPassEncoder.setPipeline;
         renderPassEncoder.setPipeline = (pipeline: GPURenderPipeline) => {
             if (rcd.recording) {
@@ -51,13 +60,30 @@ export class FFRenderPassEncoder extends FFObject<GPURenderPassEncoder> {
             return old_setVertexBuffer.call(renderPassEncoder, slot, buffer, offset, size);
         };
 
+        const old_setIndexBuffer = renderPassEncoder.setIndexBuffer;
+        renderPassEncoder.setIndexBuffer = (buffer: GPUBuffer, indexFormat: GPUIndexFormat, offset?: number, size?: number) => {
+            if (rcd.recording) {
+                (buffer as any as FFKey<GPUBuffer>).$ff.markUsed();
+                rcd.addFrameAction(methodCall(this, 'setIndexBuffer', [buffer, indexFormat, offset, size]));
+            }
+            return old_setIndexBuffer.call(renderPassEncoder, buffer, indexFormat, offset, size);
+        };
+
         const old_draw = renderPassEncoder.draw;
         renderPassEncoder.draw = (vertexCount: number, instanceCount: number, firstVertex: number, firstInstance: number) => {
             if (rcd.recording) {
                 rcd.addFrameAction(methodCall(this, 'draw', [vertexCount, instanceCount, firstVertex, firstInstance]));
             }
             return old_draw.call(renderPassEncoder, vertexCount, instanceCount, firstVertex, firstInstance);
-        }
+        };
+
+        const old_drawIndexed = renderPassEncoder.drawIndexed;
+        renderPassEncoder.drawIndexed = (indexCount: number, instanceCount: number, firstIndex: number, baseVertex: number, firstInstance: number) => {
+            if (rcd.recording) {
+                rcd.addFrameAction(methodCall(this, 'drawIndexed', [indexCount, instanceCount, firstIndex, baseVertex, firstInstance]));
+            }
+            return old_drawIndexed.call(renderPassEncoder, indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
+        };
 
         const old_end = renderPassEncoder.end;
         renderPassEncoder.end = () => {
@@ -65,7 +91,7 @@ export class FFRenderPassEncoder extends FFObject<GPURenderPassEncoder> {
                 rcd.addFrameAction(methodCall(this, 'end', []));
             }
             return old_end.call(renderPassEncoder);
-        }
+        };
     }
 
     markUsed(): void {
@@ -81,6 +107,12 @@ export class FFRenderPassEncoder extends FFObject<GPURenderPassEncoder> {
                 if (colorAttachment.view) {
                     (colorAttachment.view as any as FFKey<GPUTextureView>).$ff.markUsed();
                 }
+            }
+        }
+
+        if (this._desc && this._desc.depthStencilAttachment) {
+            if (this._desc.depthStencilAttachment.view) {
+                (this._desc.depthStencilAttachment.view as any as FFKey<GPUTextureView>).$ff.markUsed();
             }
         }
     }

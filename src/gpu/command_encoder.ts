@@ -51,7 +51,7 @@ export class FFCommandEncoder extends FFObject<GPUCommandEncoder> {
         this._device.markUsed();
     }
 
-    addInitActions(rcd: FFRecorder) {
-        rcd.addInitAction(methodCall(this._device, 'createCommandEncoder', [this._desc], this));
-    }
+    // addInitActions(rcd: FFRecorder) {
+    //     rcd.addInitAction(methodCall(this._device, 'createCommandEncoder', [this._desc], this));
+    // }
 }

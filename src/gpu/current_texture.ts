@@ -18,7 +18,10 @@ export class FFCurrentTexture extends FFObject<GPUTexture> {
         const old_createView = texture.createView;
         texture.createView = (desc?: GPUTextureViewDescriptor) => {
             const texView = old_createView.call(texture, desc);
-            new FFTextureView(rcd, texView, this, desc);
+            if (rcd.recording) {
+                const ff = new FFTextureView(rcd, texView, this, desc, true);
+                rcd.addFrameAction(methodCall(this, 'createView', [desc], ff));
+            }
             return texView;
         };
     }
@@ -32,7 +35,7 @@ export class FFCurrentTexture extends FFObject<GPUTexture> {
         this._canvasCtx.markUsed();
     }
 
-    addInitActions(rcd: FFRecorder): void {
-        rcd.addInitAction(methodCall(this._canvasCtx, 'getCurrentTexture', [], this));
-    }
+    // addInitActions(rcd: FFRecorder): void {
+    //     rcd.addInitAction(methodCall(this._canvasCtx, 'getCurrentTexture', [], this));
+    // }
 }
