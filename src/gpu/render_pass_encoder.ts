@@ -5,16 +5,16 @@ import { FFKey, FFObject } from "./object";
 import { FFRecorder } from "./recorder";
 
 export class FFRenderPassEncoder extends FFObject<GPURenderPassEncoder> {
-    private _cmd: FFCommandEncoder;
+    private _commandEncoder: FFCommandEncoder;
     private _desc?: GPURenderPassDescriptor;
 
     get typeName(): string {
-        return 'renderPass';
+        return 'renderPassEncoder';
     }
 
-    constructor(rcd: FFRecorder, renderPassEncoder: GPURenderPassEncoder, cmd: FFCommandEncoder, desc?: GPURenderPassDescriptor) {
+    constructor(rcd: FFRecorder, renderPassEncoder: GPURenderPassEncoder, commandEncoder: FFCommandEncoder, desc?: GPURenderPassDescriptor) {
         super(rcd, renderPassEncoder);
-        this._cmd = cmd;
+        this._commandEncoder = commandEncoder;
         this._desc = deepCopy(desc);
 
         const old_setViewport = renderPassEncoder.setViewport;
@@ -100,7 +100,7 @@ export class FFRenderPassEncoder extends FFObject<GPURenderPassEncoder> {
         }
 
         super.markUsed();
-        this._cmd.markUsed();
+        this._commandEncoder.markUsed();
 
         if (this._desc && this._desc.colorAttachments) {
             for (const colorAttachment of this._desc.colorAttachments) {

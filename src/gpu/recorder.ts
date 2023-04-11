@@ -1,3 +1,4 @@
+import { downloadFile } from "../util/download";
 import { FFObject } from "./object";
 
 export class FFRecorder {
@@ -24,11 +25,11 @@ export class FFRecorder {
         this.save();
     }
 
-    async save(): Promise<string> {
+    async save() {
         const declVars = [];
         for (let object of this._liveObjects) {
             if (object.used) {
-                declVars.push(`let ${object.name} = null;`);
+                declVars.push(`${object.name}`);
                 await object.addInitActions(this);
             }
         }
@@ -43,8 +44,13 @@ export class FFRecorder {
             '<body>',
             '<script>',
             '(async () => {',
-            ...declVars,
+        ];
 
+        if (declVars.length > 0) {
+            lines.push(`let ${declVars.join(', ')};`);
+        }
+
+        lines.push(
             'async function init() {',
             ...this._initActions,
             '}',
@@ -54,17 +60,16 @@ export class FFRecorder {
             '}',
 
             'await init();',
-            // 'frame();',
             'requestAnimationFrame(frame);',
+
             '})();',
             '</script>',
             '</body>',
-        ];
+        );
         const output = lines.join('\n');
-        console.log(output);
 
+        downloadFile('recorded.html', output);
         this.clearActions();
-        return output;
     }
 
     ////////////////////////////////

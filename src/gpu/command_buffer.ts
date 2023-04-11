@@ -8,7 +8,7 @@ export class FFCommandBuffer extends FFObject<GPUCommandBuffer> {
     private _desc?: GPUCommandBufferDescriptor;
 
     get typeName(): string {
-        return 'cmdBuf';
+        return 'commandBuffer';
     }
 
     constructor(rcd: FFRecorder, commandBuffer: GPUCommandBuffer, cmd: FFCommandEncoder, desc?: GPUCommandBufferDescriptor) {

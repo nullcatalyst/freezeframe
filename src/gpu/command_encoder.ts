@@ -11,7 +11,7 @@ export class FFCommandEncoder extends FFObject<GPUCommandEncoder> {
     private _desc?: GPUCommandEncoderDescriptor;
 
     get typeName(): string {
-        return 'cmd';
+        return 'commandEncoder';
     }
 
     constructor(rcd: FFRecorder, cmd: GPUCommandEncoder, device: FFDevice, desc?: GPUCommandEncoderDescriptor) {

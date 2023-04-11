@@ -53,7 +53,7 @@ export class FFTexture extends FFObject<GPUTexture> {
     private _cachedBuffer?: GPUBuffer;
 
     get typeName(): string {
-        return 'tex';
+        return 'texture';
     }
 
     constructor(rcd: FFRecorder, texture: GPUTexture, device: FFDevice, desc?: GPUTextureDescriptor) {
@@ -67,6 +67,14 @@ export class FFTexture extends FFObject<GPUTexture> {
             new FFTextureView(rcd, texView, this, desc);
             return texView;
         };
+
+        const old_destroy = texture.destroy;
+        texture.destroy = () => {
+            if (rcd.recording) {
+                rcd.addInitAction(methodCall(this, 'destroy', []));
+            }
+            return old_destroy.call(texture);
+        }
     }
 
     cacheCurrentContents() {

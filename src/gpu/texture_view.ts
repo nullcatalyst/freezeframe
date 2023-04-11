@@ -11,7 +11,7 @@ export class FFTextureView extends FFObject<GPUTextureView> {
     private _fromCurrentTexture = false;
 
     get typeName(): string {
-        return 'texView';
+        return 'textureView';
     }
 
     constructor(rcd: FFRecorder, textureView: GPUTextureView, texture: FFTexture | FFCurrentTexture, desc?: GPUTextureViewDescriptor, fromCurrentTexture = false) {

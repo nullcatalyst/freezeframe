@@ -3,9 +3,9 @@ import { FFAdapter } from "./adapter";
 import { FFObject } from "./object";
 import { FFRecorder } from "./recorder";
 
-export class FFNavGpu extends FFObject<GPU> {
+export class FFNavigatorGpu extends FFObject<GPU> {
     get typeName(): string {
-        return 'navGpu';
+        return 'navigatorGpu';
     }
 
     constructor(rcd: FFRecorder, navGpu: GPU) {

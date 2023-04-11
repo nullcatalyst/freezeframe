@@ -1,6 +1,6 @@
 import { FFCanvas } from "./gpu/canvas";
 import { FFCanvasContext } from "./gpu/canvas_context";
-import { FFNavGpu } from "./gpu/nav_gpu";
+import { FFNavigatorGpu } from "./gpu/navigator_gpu";
 import { FFRecorder } from "./gpu/recorder";
 
 window['installFreezeFrame'] = function () {
@@ -10,7 +10,7 @@ window['installFreezeFrame'] = function () {
     }
 
     const rcd = new FFRecorder();
-    new FFNavGpu(rcd, navigator.gpu);
+    new FFNavigatorGpu(rcd, navigator.gpu);
 
     // Wrap all existing canvases.
     Array.from(document.getElementsByTagName('canvas')).forEach((canvas) => { wrapCanvas(rcd, canvas); });

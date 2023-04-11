@@ -8,7 +8,7 @@ export class FFCurrentTexture extends FFObject<GPUTexture> {
     private _canvasCtx: FFCanvasContext;
 
     get typeName(): string {
-        return 'frameTex';
+        return 'currentTexture';
     }
 
     constructor(rcd: FFRecorder, texture: GPUTexture, canvasCtx: FFCanvasContext) {

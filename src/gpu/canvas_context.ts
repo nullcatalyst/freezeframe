@@ -4,7 +4,6 @@ import { FFCanvas } from "./canvas";
 import { FFCurrentTexture } from "./current_texture";
 import { FFKey, FFObject } from "./object";
 import { FFRecorder } from "./recorder";
-import { FFTexture } from "./texture";
 
 export class FFCanvasContext extends FFObject<GPUCanvasContext> {
     private _canvas: FFCanvas;
@@ -12,7 +11,7 @@ export class FFCanvasContext extends FFObject<GPUCanvasContext> {
     private _configuration: GPUCanvasConfiguration | null = null;
 
     get typeName(): string {
-        return 'ctx';
+        return 'context';
     }
 
     constructor(rcd: FFRecorder, ctx: GPUCanvasContext, canvas: FFCanvas, options?: any) {

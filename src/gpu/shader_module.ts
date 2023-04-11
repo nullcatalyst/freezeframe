@@ -9,7 +9,7 @@ export class FFShaderModule extends FFObject<GPUShaderModule> {
     private _desc?: GPUShaderModuleDescriptor;
 
     get typeName(): string {
-        return 'shader';
+        return 'shaderModule';
     }
 
     constructor(rcd: FFRecorder, shaderModule: GPUShaderModule, device: FFDevice, desc?: GPUShaderModuleDescriptor) {
