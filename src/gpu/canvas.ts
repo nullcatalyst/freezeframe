@@ -3,14 +3,17 @@ import { FFObject } from "./object";
 import { assignment, propertyAssignment, statement } from "./actions";
 
 export class FFCanvas extends FFObject<HTMLCanvasElement> {
-    _width: number;
-    _height: number;
-    _styleWidth: number;
-    _styleHeight: number;
+    private _width: number = 1;
+    private _height: number = 1;
+    private _styleWidth: number = 1;
+    private _styleHeight: number = 1;
 
     get typeName(): string {
         return 'canvas';
     }
+
+    get width(): number { return this._width; }
+    get height(): number { return this._height; }
 
     markUsed(): void {
         if (this.used) {
@@ -18,7 +21,9 @@ export class FFCanvas extends FFObject<HTMLCanvasElement> {
         }
 
         super.markUsed();
+    }
 
+    cacheCurrentContents(): void {
         this._width = this._actual.width;
         this._height = this._actual.height;
 

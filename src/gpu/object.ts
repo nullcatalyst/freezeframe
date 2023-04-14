@@ -1,7 +1,7 @@
 import { FFRecorder } from "./recorder";
 
 export interface FFKey<T> {
-    $ff?: FFObject<T>;
+    $ff: FFObject<T>;
 }
 
 /** Base recorded object */

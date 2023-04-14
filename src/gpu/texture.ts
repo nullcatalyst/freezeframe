@@ -1,3 +1,4 @@
+import { encode } from "../util/base64";
 import { deepCopy } from "../util/deep_copy";
 import { methodCall, statement } from "./actions";
 import { FFDevice } from "./device";
@@ -5,7 +6,7 @@ import { FFKey, FFObject } from "./object";
 import { FFRecorder } from "./recorder";
 import { FFTextureView } from "./texture_view";
 
-const bytesPerPixelForFormat = {
+const bytesPerPixelForFormat: { [format in GPUTextureFormat]?: number } = {
     'r8unorm': 1,
     'r8snorm': 1,
     'r8uint': 1,
@@ -49,14 +50,15 @@ const bytesPerPixelForFormat = {
 
 export class FFTexture extends FFObject<GPUTexture> {
     private _device: FFDevice;
-    private _desc?: GPUTextureDescriptor;
+    private _desc: GPUTextureDescriptor;
     private _cachedBuffer?: GPUBuffer;
+    private _loadPreviousContents?: boolean;
 
     get typeName(): string {
         return 'texture';
     }
 
-    constructor(rcd: FFRecorder, texture: GPUTexture, device: FFDevice, desc?: GPUTextureDescriptor) {
+    constructor(rcd: FFRecorder, texture: GPUTexture, device: FFDevice, desc: GPUTextureDescriptor) {
         super(rcd, texture);
         this._device = device;
         this._desc = deepCopy(desc);
@@ -77,8 +79,24 @@ export class FFTexture extends FFObject<GPUTexture> {
         }
     }
 
+    setLoadPreviousContents(loadPreviousContents: boolean): void {
+        if (this._loadPreviousContents != null) {
+            return;
+        }
+        this._loadPreviousContents = loadPreviousContents;
+    }
+
+    markUsed(): void {
+        if (this.used) {
+            return;
+        }
+
+        super.markUsed();
+        this._device.markUsed();
+    }
+
     cacheCurrentContents() {
-        if (this._desc.format.startsWith('depth') || this._desc.format.startsWith('stencil')) {
+        if ((this._loadPreviousContents != null && !this._loadPreviousContents) || this._desc.format.startsWith('depth') || this._desc.format.startsWith('stencil')) {
             return;
         }
 
@@ -90,7 +108,6 @@ export class FFTexture extends FFObject<GPUTexture> {
             "size": w * h * b,
             "usage": GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
         });
-
 
         const cmd: GPUCommandEncoder = untouchedDevice.createCommandEncoder.call(device);
         cmd.copyTextureToBuffer({
@@ -107,26 +124,19 @@ export class FFTexture extends FFObject<GPUTexture> {
         (GPUDevice.prototype as any).__lookupGetter__('queue').call(device).submit([cmd.finish()]);
     }
 
-    markUsed(): void {
-        if (this.used) {
-            return;
-        }
-
-        super.markUsed();
-        this._device.markUsed();
-    }
-
     async addInitActions(rcd: FFRecorder) {
-        if (this._desc.format.startsWith('depth') || this._desc.format.startsWith('stencil')) {
-            rcd.addInitAction(methodCall(this._device, 'createTexture', [this._desc], this));
+        if ((this._loadPreviousContents != null && !this._loadPreviousContents) ||this._desc.format.startsWith('depth') || this._desc.format.startsWith('stencil')) {
+            const customDesc = deepCopy(this._desc);
+            customDesc.usage |= GPUTextureUsage.TEXTURE_BINDING;
+            rcd.addInitAction(methodCall(this._device, 'createTexture', [customDesc], this));
             return;
         }
 
-        await this._cachedBuffer.mapAsync(GPUMapMode.READ);
-        const data = this._cachedBuffer.getMappedRange();
+        await this._cachedBuffer!.mapAsync(GPUMapMode.READ);
+        const data = this._cachedBuffer!.getMappedRange();
 
         const tmpDesc = deepCopy(this._desc);
-        tmpDesc.usage |= GPUTextureUsage.COPY_DST;
+        tmpDesc.usage |= GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING;
 
         const { w, h, d, b } = textureSizeFromDesc(this._desc);
         if (d > 1) {
@@ -146,13 +156,9 @@ export class FFTexture extends FFObject<GPUTexture> {
         rcd.addInitAction(methodCall(this._device, 'createTexture', [tmpDesc], this));
 
         const imageParams = `${JSON.stringify(imageLayout)}, ${JSON.stringify(imageSize)}`;
-        if (w * h * b % 4 === 0) {
-            rcd.addInitAction(statement(`${(this._device.actual.queue as any as FFKey<GPUQueue>).$ff.name}.writeTexture({"texture": ${this.name}, "aspect": "all"}, new Uint32Array([${Array.from(new Uint32Array(data))}]), ${imageParams})`));
-        } else {
-            rcd.addInitAction(statement(`${(this._device.actual.queue as any as FFKey<GPUQueue>).$ff.name}.writeTexture({"texture": ${this.name}, "aspect": "all"}, new Uint8Array([${Array.from(new Uint8Array(data))}]), ${imageParams})`));
-        }
+        rcd.addInitAction(statement(`${(this._device.actual.queue as any as FFKey<GPUQueue>).$ff.name}.writeTexture({"texture": ${this.name}, "aspect": "all"}, b64("${encode(data)}"), ${imageParams})`));
 
-        this._cachedBuffer.unmap();
+        this._cachedBuffer!.unmap();
     }
 }
 
@@ -164,8 +170,8 @@ interface TextureSize {
 }
 
 function textureSizeFromDesc(desc: GPUTextureDescriptor): TextureSize {
-    const bytesPerPixel = bytesPerPixelForFormat[desc.format];
-    if (!bytesPerPixel) {
+    const b = bytesPerPixelForFormat[desc.format];
+    if (b == null) {
         throw new Error('unknown or unsupported texture format');
     }
 
@@ -185,10 +191,5 @@ function textureSizeFromDesc(desc: GPUTextureDescriptor): TextureSize {
         throw new Error('unknown texture size');
     }
 
-    return {
-        w,
-        h,
-        d: desc.size[2] || 1,
-        b: bytesPerPixel,
-    }
+    return { w, h, d, b };
 }

@@ -1,4 +1,6 @@
-export function deepCopy(obj: any) {
+import { FFKey } from "../gpu/object";
+
+export function deepCopy<T>(obj: T): T {
     // Handle primitive types.
     if (obj == null || typeof obj !== 'object') {
         return obj;
@@ -6,11 +8,11 @@ export function deepCopy(obj: any) {
 
     // Handle arrays.
     if (Array.isArray(obj)) {
-        return obj.map(deepCopy);
+        return (obj as any[]).map(deepCopy) as T;
     }
 
     // Handle wrapped gpu objects.
-    if (obj.$ff) {
+    if ((obj as any as FFKey<T>).$ff) {
         return obj;
     }
 
@@ -20,8 +22,8 @@ export function deepCopy(obj: any) {
     }
 
     // Deep copy the object.
-    let copy = obj.constructor();
-    for (let attr in obj) {
+    const copy = (obj as Object).constructor();
+    for (const attr in obj) {
         if (obj.hasOwnProperty(attr)) {
             copy[attr] = deepCopy(obj[attr]);
         }

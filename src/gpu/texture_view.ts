@@ -21,6 +21,12 @@ export class FFTextureView extends FFObject<GPUTextureView> {
         this._fromCurrentTexture = fromCurrentTexture;
     }
 
+    setLoadPreviousContents(loadPreviousContents: boolean): void {
+        if (this._texture instanceof FFTexture) {
+            this._texture.setLoadPreviousContents(loadPreviousContents);
+        }
+    }
+
     markUsed(): void {
         if (this.used) {
             return;

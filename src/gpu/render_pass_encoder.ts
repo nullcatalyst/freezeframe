@@ -34,12 +34,14 @@ export class FFRenderPassEncoder extends FFObject<GPURenderPassEncoder> {
         };
 
         const old_setBindGroup = renderPassEncoder.setBindGroup;
-        renderPassEncoder.setBindGroup = (index: number, bindGroup: GPUBindGroup, dynamicOffsets?: Iterable<number>) => {
+        renderPassEncoder.setBindGroup = (index: number, bindGroup: GPUBindGroup, ...args: [Iterable<number>?] | [Uint32Array, number, number]) => {
             if (rcd.recording) {
                 (bindGroup as any as FFKey<GPUBindGroup>).$ff.markUsed();
-                rcd.addFrameAction(methodCall(this, 'setBindGroup', [index, bindGroup, dynamicOffsets]));
+                rcd.addFrameAction(methodCall(this, 'setBindGroup', [index, bindGroup, ...args]));
             }
-            return old_setBindGroup.call(renderPassEncoder, index, bindGroup, dynamicOffsets);
+            // TODO: This typecast to a tuple is not exactly correct, but it removes the compile
+            // error.
+            return old_setBindGroup.call(renderPassEncoder, index, bindGroup, ...(args as [Uint32Array, number, number]));
         };
 
         const old_setPipeline = renderPassEncoder.setPipeline;
@@ -104,7 +106,7 @@ export class FFRenderPassEncoder extends FFObject<GPURenderPassEncoder> {
 
         if (this._desc && this._desc.colorAttachments) {
             for (const colorAttachment of this._desc.colorAttachments) {
-                if (colorAttachment.view) {
+                if (colorAttachment != null && colorAttachment.view) {
                     (colorAttachment.view as any as FFKey<GPUTextureView>).$ff.markUsed();
                 }
             }

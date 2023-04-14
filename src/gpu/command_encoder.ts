@@ -1,10 +1,11 @@
 import { deepCopy } from "../util/deep_copy";
 import { methodCall } from "./actions";
 import { FFDevice } from "./device";
-import { FFObject } from "./object";
+import { FFKey, FFObject } from "./object";
 import { FFRecorder } from "./recorder";
 import { FFRenderPassEncoder } from "./render_pass_encoder";
 import { FFCommandBuffer } from "./command_buffer";
+import { FFTextureView } from "./texture_view";
 
 export class FFCommandEncoder extends FFObject<GPUCommandEncoder> {
     private _device: FFDevice;
@@ -25,6 +26,22 @@ export class FFCommandEncoder extends FFObject<GPUCommandEncoder> {
             if (rcd.recording) {
                 const ff = new FFRenderPassEncoder(rcd, renderPass, this, desc);
                 ff.markUsed();
+
+                for (const colorAttachment of desc.colorAttachments) {
+                    if (colorAttachment == null) {
+                        continue;
+                    }
+
+                    ((colorAttachment.view as any as FFKey<GPUTextureView>).$ff as any as FFTextureView)
+                        .setLoadPreviousContents(colorAttachment.loadOp === 'load');
+                }
+
+                if (desc.depthStencilAttachment != null) {
+                    ((desc.depthStencilAttachment.view as any as FFKey<GPUTextureView>).$ff as any as FFTextureView)
+                        .setLoadPreviousContents(desc.depthStencilAttachment.depthLoadOp === 'load' ||
+                            desc.depthStencilAttachment.stencilLoadOp === 'load');
+                }
+
                 rcd.addFrameAction(methodCall(this, 'beginRenderPass', [desc], ff));
             }
             return renderPass;

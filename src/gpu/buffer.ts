@@ -1,3 +1,4 @@
+import { encode } from "../util/base64";
 import { deepCopy } from "../util/deep_copy";
 import { methodCall, statement } from "./actions";
 import { FFDevice } from "./device";
@@ -40,36 +41,36 @@ export class FFBuffer extends FFObject<GPUBuffer> {
     }
 
     cacheCurrentContents() {
+        const size = this._desc!.size;
         this._mappedState = this.actual.mapState;
 
-        const untouchedDevice = GPUDevice.prototype;
+        const devicePrototype = GPUDevice.prototype;
         const device = this._device.actual;
-        this._cachedBuffer = untouchedDevice.createBuffer.call(device, {
-            size: this._desc.size,
-            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+        this._cachedBuffer = devicePrototype.createBuffer.call(device, {
+            "size": size,
+            "usage": GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
         });
 
-        const cmd = untouchedDevice.createCommandEncoder.call(device);
-        cmd.copyBufferToBuffer(this.actual, 0, this._cachedBuffer, 0, this._desc.size);
-        (GPUDevice.prototype as any).__lookupGetter__('queue').call(device).submit([cmd.finish()]);
+        const cmd = devicePrototype.createCommandEncoder.call(device);
+        cmd.copyBufferToBuffer(this.actual, 0, this._cachedBuffer, 0, size);
+        (devicePrototype as any).__lookupGetter__('queue').call(device).submit([cmd.finish()]);
     }
 
     async addInitActions(rcd: FFRecorder) {
-        await this._cachedBuffer.mapAsync(GPUMapMode.READ);
-        const data = this._cachedBuffer.getMappedRange();
+        const desc = this._desc!;
+        const cachedBuffer = this._cachedBuffer!;
+
+        await cachedBuffer.mapAsync(GPUMapMode.READ);
+        const data = cachedBuffer.getMappedRange();
 
         rcd.addInitAction(methodCall(this._device, 'createBuffer', [{
-            size: this._desc.size,
-            usage: this._desc.usage | GPUBufferUsage.COPY_DST,
+            size: desc.size,
+            usage: desc.usage | GPUBufferUsage.COPY_DST,
             mappedAtCreation: this._mappedState === 'mapped',
         }], this));
 
-        if (this._desc.size % 4 === 0) {
-            rcd.addInitAction(statement(`${(this._device.actual.queue as any as FFKey<GPUQueue>).$ff.name}.writeBuffer(${this.name}, 0, new Uint32Array([${Array.from(new Uint32Array(data))}]))`));
-        } else {
-            rcd.addInitAction(statement(`${(this._device.actual.queue as any as FFKey<GPUQueue>).$ff.name}.writeBuffer(${this.name}, 0, new Uint8Array([${Array.from(new Uint8Array(data))}]))`));
-        }
+        rcd.addInitAction(statement(`${(this._device.actual.queue as any as FFKey<GPUQueue>).$ff.name}.writeBuffer(${this.name}, 0, b64("${encode(data)}"))`));
 
-        this._cachedBuffer.unmap();
+        cachedBuffer.unmap();
     }
 }

@@ -1,9 +1,11 @@
 import { deepCopy } from "../util/deep_copy";
 import { methodCall } from "./actions";
 import { FFCanvas } from "./canvas";
-import { FFCurrentTexture } from "./current_texture";
+// import { FFCurrentTexture } from "./current_texture";
+import { FFDevice } from "./device";
 import { FFKey, FFObject } from "./object";
 import { FFRecorder } from "./recorder";
+import { FFTexture } from "./texture";
 
 export class FFCanvasContext extends FFObject<GPUCanvasContext> {
     private _canvas: FFCanvas;
@@ -40,8 +42,20 @@ export class FFCanvasContext extends FFObject<GPUCanvasContext> {
             ctx.getCurrentTexture = () => {
                 const texture = old_getCurrentTexture.call(ctx);
                 if (rcd.recording) {
-                    const ff = new FFCurrentTexture(rcd, texture, this);
-                    rcd.addFrameAction(methodCall(this, 'getCurrentTexture', [], ff));
+                    // const ff = new FFCurrentTexture(rcd, texture, this);
+                    // rcd.addFrameAction(methodCall(this, 'getCurrentTexture', [], ff));
+                    if (this._configuration == null || this._configuration.device == null) {
+                        throw new Error('cannot get current texture without a configured device');
+                    }
+                    new FFTexture(rcd, texture, (this._configuration.device as any).$ff as FFDevice, {
+                        size: {
+                            width: this._canvas.width,
+                            height: this._canvas.height,
+                            depthOrArrayLayers: 1,
+                        },
+                        format: this._configuration.format,
+                        usage: GPUTextureUsage.RENDER_ATTACHMENT,
+                    });
                 }
                 return texture;
             };
